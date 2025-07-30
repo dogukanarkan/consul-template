@@ -1960,3 +1960,49 @@ func spewPrintf(format string, args ...interface{}) (string, error) {
 	spewLib.Printf(format, args...)
 	return "", nil
 }
+
+// JSONKeyExists returns true if a key exists in jsonMap, false otherwise.
+// key parameter is a dot-separated string representing the path to the nested key in the JSON.
+// It can be "key1", "key1.key2", "key1.key2.key3", etc.
+func JSONKeyExists(jsonMap map[string]interface{}, key string) (bool, error) {
+	if len(jsonMap) == 0 {
+		return false, nil
+	}
+
+	jsonStr, err := toJSON(jsonMap)
+	if err != nil {
+		return false, err
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
+		return false, err
+	}
+
+	keyPath := strings.Split(key, ".")
+	if traverseJSONKey(data, keyPath) {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func traverseJSONKey(data map[string]interface{}, keyPath []string) bool {
+	if len(keyPath) == 0 {
+		return false
+	}
+
+	var jsonData map[string]interface{} = data
+	for _, key := range keyPath {
+		_, ok := jsonData[key]
+		if !ok {
+			return false
+		}
+
+		if nextData, ok := jsonData[key].(map[string]interface{}); ok {
+			jsonData = nextData
+		}
+	}
+
+	return true
+}
